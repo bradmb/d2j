@@ -11,6 +11,7 @@ export default {
         host: env.JIRA_URL,
         email: env.JIRA_EMAIL,
         apiToken: env.JIRA_API_TOKEN,
+        accountId: env.JIRA_ACCOUNT_ID,  // Use proper JIRA account ID
       });
 
       const slackService = new SlackService(env, jiraService);
@@ -20,15 +21,13 @@ export default {
 
       // Process each ticket
       for (const ticket of tickets) {
-        const lastChecked = await env.DB.prepare(
-          'SELECT last_checked FROM ticket_checks WHERE ticket_key = ?'
-        ).bind(ticket.key).first<{ last_checked: string }>();
+        // Check if ticket has already been processed
+        const processed = await env.DB.prepare(
+          'SELECT 1 FROM ticket_checks WHERE ticket_key = ?'
+        ).bind(ticket.key).first();
 
-        const ticketUpdated = new Date(ticket.fields.updated);
-        const lastCheckedDate = lastChecked ? new Date(lastChecked.last_checked) : new Date(0);
-
-        if (!lastChecked || ticketUpdated > lastCheckedDate) {
-          console.log(`Processing ticket ${ticket.key}`);
+        if (!processed) {
+          console.log(`Processing new ticket ${ticket.key}`);
 
           // Fetch full ticket details including attachments
           const fullTicket = await jiraService.getTicket(ticket.key);
@@ -69,6 +68,8 @@ export default {
              VALUES (?, ?)
              ON CONFLICT(ticket_key) DO UPDATE SET last_checked = excluded.last_checked`
           ).bind(ticket.key, new Date().toISOString()).run();
+        } else {
+          console.log(`Ticket ${ticket.key} has already been processed, skipping...`);
         }
       }
 
@@ -145,6 +146,7 @@ export default {
         host: env.JIRA_URL,
         email: env.JIRA_EMAIL,
         apiToken: env.JIRA_API_TOKEN,
+        accountId: env.JIRA_ACCOUNT_ID,  // Use proper JIRA account ID
       });
 
       const slackService = new SlackService(env, jiraService);

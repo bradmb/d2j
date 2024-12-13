@@ -4,6 +4,7 @@ export interface JiraConfig {
   host: string;
   email: string;
   apiToken: string;
+  accountId: string;  // Add JIRA account ID for proper user identification
 }
 
 export interface JiraAttachment {
@@ -59,7 +60,7 @@ export class JiraService {
       apiVersion: '2',
       strictSSL: true,
     });
-    this.accountId = config.email;  // Using email as account identifier until we get the actual account ID
+    this.accountId = config.accountId;  // Use provided JIRA account ID instead of email
   }
 
   getAccountId(): string {
@@ -110,7 +111,7 @@ export class JiraService {
     if (!this.accountId) {
       throw new Error('JIRA account ID is required');
     }
-    const jql = `text ~ "[~${this.accountId}]"`;
+    const jql = `mentions = "${this.accountId}"`;  // Use proper JIRA mention syntax
     return this.searchTickets(jql);
   }
 

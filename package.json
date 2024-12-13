@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "wrangler build",
+    "typecheck": "tsc",
+    "build": "tsc && wrangler deploy --dry-run --outdir=dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

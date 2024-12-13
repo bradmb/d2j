@@ -8,6 +8,7 @@ export class SlackService {
   private signingSecret: string;
   private db: D1Database;
   private jiraService: JiraService;
+  private devinUserId: string;  // Add field for Devin's Slack user ID
 
   constructor(env: Env, jiraService: JiraService) {
     this.token = env.SLACK_BOT_TOKEN;
@@ -15,6 +16,7 @@ export class SlackService {
     this.signingSecret = env.SLACK_SIGNING_SECRET;
     this.db = env.DB;
     this.jiraService = jiraService;
+    this.devinUserId = env.DEVIN_USER_ID;  // Store Devin's user ID for mentions
   }
 
   async sendMessage(message: SlackMessage): Promise<{ ts: string }> {
@@ -48,7 +50,7 @@ export class SlackService {
   }
 
   async sendJiraTicketUpdate(ticketKey: string, summary: string, description: string): Promise<{ ts: string }> {
-    const message = `<@devin> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}`;
+    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}`;
     const result = await this.sendMessage({
       text: message,
       channel: this.channel,
