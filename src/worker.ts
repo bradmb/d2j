@@ -1,41 +1,19 @@
 import { Env } from './types';
-
-interface JiraSearchResponse {
-  issues: Array<{
-    key: string;
-    fields: {
-      summary: string;
-      description: string;
-      assignee: {
-        emailAddress: string;
-      };
-      updated: string;
-    };
-  }>;
-}
+import { JiraService, JiraTicket } from './jira';
 
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     console.log('Starting scheduled check for JIRA tickets...');
 
     try {
-      // Check for new tickets assigned to Devin
-      const jiraAuth = btoa(`${env.JIRA_EMAIL}:${env.JIRA_API_TOKEN}`);
-      const jqlAssigned = 'assignee = currentUser()';
-
-      const response = await fetch(`${env.JIRA_URL}/rest/api/2/search?jql=${encodeURIComponent(jqlAssigned)}`, {
-        headers: {
-          'Authorization': `Basic ${jiraAuth}`,
-          'Accept': 'application/json'
-        }
+      const jiraService = new JiraService({
+        host: 'tech.atlassian.net',
+        email: env.JIRA_EMAIL,
+        apiToken: env.JIRA_API_TOKEN,
       });
 
-      if (!response.ok) {
-        throw new Error(`JIRA API error: ${response.statusText}`);
-      }
-
-      const data = await response.json() as JiraSearchResponse;
-      const tickets = data.issues;
+      // Check for new tickets assigned to Devin
+      const tickets = await jiraService.getTicketsAssignedToDevin();
 
       // Process each ticket
       for (const ticket of tickets) {
@@ -47,8 +25,22 @@ export default {
         const lastCheckedDate = lastChecked ? new Date(lastChecked.last_checked) : new Date(0);
 
         if (!lastChecked || ticketUpdated > lastCheckedDate) {
-          // New or updated ticket found - will implement notification logic in step 010
           console.log(`Processing ticket ${ticket.key}`);
+
+          // Fetch full ticket details including attachments
+          const fullTicket = await jiraService.getTicket(ticket.key);
+
+          // Download attachments if present
+          if (fullTicket.fields.attachments?.length > 0) {
+            for (const attachment of fullTicket.fields.attachments) {
+              try {
+                await jiraService.getAttachmentContent(attachment);
+                console.log(`Downloaded attachment ${attachment.filename} for ticket ${ticket.key}`);
+              } catch (error) {
+                console.error(`Failed to download attachment ${attachment.filename}:`, error);
+              }
+            }
+          }
 
           // Update or insert last checked timestamp
           await env.DB.prepare(
