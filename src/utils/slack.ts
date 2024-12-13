@@ -50,7 +50,7 @@ export class SlackService {
   }
 
   async sendJiraTicketUpdate(ticketKey: string, summary: string, description: string): Promise<{ ts: string }> {
-    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}`;
+    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}\nPlease ensure to update JIRA when you have questions or complete the work.`;
     const result = await this.sendMessage({
       text: message,
       channel: this.channel,
@@ -68,7 +68,7 @@ export class SlackService {
       return null;
     }
 
-    const message = `*New comment on JIRA Ticket ${ticketKey}*\n${comment}`;
+    const message = `*New comment on JIRA Ticket ${ticketKey}*\n${comment}\nPlease ensure to update JIRA when you have questions or complete the work.`;
     return this.sendMessage({
       text: message,
       thread_ts: threadTs,
@@ -115,19 +115,5 @@ export class SlackService {
       .join('')}`;
 
     return expectedSignature === signature;
-  }
-
-  async handleDevinReply(threadTs: string, text: string): Promise<void> {
-    const result = await this.db.prepare(
-      'SELECT jira_ticket_key FROM thread_mappings WHERE slack_thread_ts = ?'
-    ).bind(threadTs).first<ThreadMapping>();
-
-    if (!result) {
-      console.error(`No JIRA ticket found for thread ${threadTs}`);
-      return;
-    }
-
-    // Add comment to JIRA ticket using JiraService
-    await this.jiraService.addComment(result.jira_ticket_key, text);
   }
 }
