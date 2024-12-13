@@ -16,6 +16,43 @@ export interface JiraAttachment {
   created: string;
 }
 
+interface JiraApiResponse {
+  expand: string;
+  startAt: number;
+  maxResults: number;
+  total: number;
+  issues: Array<{
+    expand: string;
+    id: string;
+    self: string;
+    key: string;
+    fields: {
+      summary: string;
+      description?: string;
+      status: {
+        self: string;
+        description: string;
+        iconUrl: string;
+        name: string;
+        id: string;
+        statusCategory: {
+          self: string;
+          id: number;
+          key: string;
+          colorName: string;
+          name: string;
+        };
+      };
+      priority?: any;
+      assignee?: any;
+      updated?: string;
+      created?: string;
+      attachments?: any[];
+      comment?: any;
+    };
+  }>;
+}
+
 export interface JiraTicket {
   key: string;
   fields: {
@@ -49,18 +86,44 @@ export interface JiraTicket {
 
 export class JiraService {
   private client: JiraClient;
+  private host: string;
+  private username: string;
+  private apiToken: string;
   private accountId: string;
 
+  private encodeJQL(jql: string): string {
+    return encodeURIComponent(jql.trim());
+  }
+
   constructor(config: JiraConfig) {
-    this.client = new JiraClient({
-      host: config.host,
-      username: config.email,
-      password: config.apiToken,
+    if (!config.host || !config.email || !config.apiToken) {
+      throw new Error('Invalid JIRA configuration: missing required fields');
+    }
+
+    // Store configuration for debugging
+    this.host = config.host.replace(/^https?:\/\//, '');
+    this.username = config.email;
+    this.apiToken = config.apiToken;
+
+    // Configure JIRA client with explicit protocol and API version
+    const baseOptions = {
       protocol: 'https',
+      host: this.host,
+      username: this.username,
+      password: this.apiToken,
       apiVersion: '2',
       strictSSL: true,
-    });
-    this.accountId = config.accountId;  // Use provided JIRA account ID instead of email
+      timeout: 10000,
+      baseOptions: {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
+    };
+
+    this.client = new JiraClient(baseOptions);
+    this.accountId = config.accountId;
   }
 
   getAccountId(): string {
@@ -77,15 +140,93 @@ export class JiraService {
   }
 
   async searchTickets(jql: string): Promise<JiraTicket[]> {
+    console.log('Starting JIRA ticket search...');
+    console.log('JQL Query:', jql);
+    const encodedJql = this.encodeJQL(jql);
+    console.log('Encoded JQL:', encodedJql);
+
     try {
-      const result = await this.client.searchJira(jql, {
-        fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
-        maxResults: 50
+      // Debug request configuration
+      const searchEndpoint = `/rest/api/2/search`;
+      const requestUrl = `https://${this.host}${searchEndpoint}`;
+      const authToken = Buffer.from(`${this.username}:${this.apiToken}`).toString('base64');
+
+      console.log('JIRA API Request URL:', requestUrl);
+      console.log('Making direct fetch request to JIRA API...');
+
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${authToken}`
+        },
+        body: JSON.stringify({
+          jql: jql,
+          fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
+          maxResults: 50
+        })
       });
-      return result.issues;
-    } catch (error) {
-      console.error('Error searching tickets:', error);
-      throw new Error('Failed to search tickets');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`JIRA API responded with status ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json() as JiraApiResponse;
+      console.log('JIRA API Response:', JSON.stringify(result, null, 2));
+
+      return result.issues.map((issue): JiraTicket => ({
+        key: issue.key,
+        fields: {
+          summary: issue.fields.summary,
+          description: issue.fields.description || '',
+          status: {
+            name: issue.fields.status.name
+          },
+          priority: issue.fields.priority ? { name: issue.fields.priority.name } : undefined,
+          assignee: {
+            emailAddress: issue.fields.assignee?.emailAddress || ''
+          },
+          updated: issue.fields.updated || new Date().toISOString(),
+          created: issue.fields.created || new Date().toISOString(),
+          attachments: issue.fields.attachments?.map((attachment: any) => ({
+            id: attachment.id,
+            filename: attachment.filename,
+            content: attachment.content,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            created: attachment.created
+          })) || [],
+          comment: {
+            comments: issue.fields.comment?.comments.map((comment: any) => ({
+              id: comment.id,
+              body: comment.body,
+              author: {
+                emailAddress: comment.author.emailAddress
+              },
+              created: comment.created,
+              updated: comment.updated
+            })) || []
+          }
+        }
+      }));
+    } catch (error: any) {
+      console.error('JIRA API Error Details:', {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+
+      const errorDetails = {
+        raw: error,
+        message: error.message || String(error)
+      };
+
+      throw new Error(`Failed to search tickets: ${JSON.stringify(errorDetails)}`);
     }
   }
 

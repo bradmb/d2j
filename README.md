@@ -47,14 +47,33 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 
 4. Set up the D1 database:
    ```bash
+   # Create a new D1 database
    wrangler d1 create d2j
+
+   # Update wrangler.toml with the database ID from the output above
+   # Replace the "placeholder" value in the [[d1_databases]] section
    ```
-   Update the `database_id` in `wrangler.toml` with the ID from the command output.
 
 5. Initialize the database schema:
    ```bash
+   # For local development
+   wrangler d1 execute d2j --local --file=./schema.sql
+
+   # For production deployment
    wrangler d1 execute d2j --file=./schema.sql
    ```
+
+   Note: If you encounter a "no such table" error when running the worker:
+   - Verify that the schema was deployed successfully using:
+     ```bash
+     # List tables in local development
+     wrangler d1 execute d2j --local --command "SELECT name FROM sqlite_master WHERE type='table';"
+
+     # List tables in production
+     wrangler d1 execute d2j --command "SELECT name FROM sqlite_master WHERE type='table';"
+     ```
+   - If tables are missing, re-run the schema deployment command for your environment
+   - For local development, you may need to restart the worker after schema changes
 
 ## Development
 
