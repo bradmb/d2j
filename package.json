@@ -9,11 +9,16 @@
     "build": "wrangler build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["devin", "jira", "cloudflare-worker"],
+  "keywords": [
+    "devin",
+    "jira",
+    "cloudflare-worker"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
+    "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "wrangler": "^3.95.0"
   },
