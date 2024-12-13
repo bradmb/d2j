@@ -71,6 +71,57 @@ export default {
           ).bind(ticket.key, new Date().toISOString()).run();
         }
       }
+
+      // Check for new comments mentioning Devin
+      console.log('Checking for new comments mentioning Devin...');
+      const ticketsWithMentions = await jiraService.getTicketsWithDevinMentions();
+
+      for (const ticket of ticketsWithMentions) {
+        // Get the thread mapping for this ticket
+        const threadMapping = await env.DB.prepare(
+          'SELECT slack_thread_ts, last_checked FROM thread_mappings WHERE jira_ticket_key = ?'
+        ).bind(ticket.key).first<{ slack_thread_ts: string; last_checked: string }>();
+
+        if (!threadMapping) {
+          console.log(`No thread mapping found for ticket ${ticket.key}, skipping...`);
+          continue;
+        }
+
+        const lastCheckedDate = new Date(threadMapping.last_checked);
+
+        // Check for new comments after last_checked
+        const newComments = ticket.fields.comment.comments.filter(comment =>
+          new Date(comment.created) > lastCheckedDate &&
+          comment.body.toLowerCase().includes('@devin')
+        );
+
+        for (const comment of newComments) {
+          console.log(`Processing new comment in ticket ${ticket.key}`);
+
+          const commentMessage = `*New Comment in JIRA Ticket*\n` +
+            `*From:* ${comment.author.emailAddress}\n` +
+            `*Comment:* ${comment.body}`;
+
+          // Send comment to existing Slack thread
+          const result = await slackService.sendJiraCommentUpdate(
+            ticket.key,
+            commentMessage
+          );
+
+          if (result) {
+            console.log(`Sent comment from ticket ${ticket.key} to Slack thread`);
+          }
+        }
+
+        if (newComments.length > 0) {
+          // Update last checked timestamp
+          await env.DB.prepare(
+            `UPDATE thread_mappings
+             SET last_checked = ?
+             WHERE jira_ticket_key = ?`
+          ).bind(new Date().toISOString(), ticket.key).run();
+        }
+      }
     } catch (error) {
       console.error('Error in scheduled task:', error);
     }
