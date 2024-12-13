@@ -49,6 +49,9 @@ export interface JiraTicket {
 
 export class JiraService {
   private client: JiraClient;
+  private host: string;
+  private username: string;
+  private apiToken: string;
   private accountId: string;
 
   private encodeJQL(jql: string): string {
@@ -60,15 +63,17 @@ export class JiraService {
       throw new Error('Invalid JIRA configuration: missing required fields');
     }
 
-    // Ensure host is properly formatted without protocol
-    const host = config.host.replace(/^https?:\/\//, '');
+    // Store configuration for debugging
+    this.host = config.host.replace(/^https?:\/\//, '');
+    this.username = config.email;
+    this.apiToken = config.apiToken;
 
     // Configure JIRA client with explicit protocol and API version
     const baseOptions = {
       protocol: 'https',
-      host: host,
-      username: config.email,
-      password: config.apiToken,
+      host: this.host,
+      username: this.username,
+      password: this.apiToken,
       apiVersion: '2',
       strictSSL: true,
       timeout: 10000,
@@ -104,6 +109,21 @@ export class JiraService {
     console.log('Encoded JQL:', encodedJql);
 
     try {
+      // Debug request configuration
+      const searchEndpoint = `/rest/api/2/search`;
+      const requestUrl = `https://${this.host}${searchEndpoint}`;
+      console.log('JIRA API Request URL:', requestUrl);
+      console.log('JIRA API Request Config:', {
+        auth: {
+          username: this.username,
+          password: '***' // Mask token for security
+        },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
       console.log('Making JIRA API request...');
       const result = await this.client.searchJira(encodedJql, {
         fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
