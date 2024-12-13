@@ -11,8 +11,8 @@ export class SlackService {
   private devinUserId: string;  // Add field for Devin's Slack user ID
 
   constructor(env: Env, jiraService: JiraService) {
-    this.token = env.SLACK_BOT_TOKEN;
-    this.channel = env.SLACK_CHANNEL_ID;
+    this.token = env.SLACK_TOKEN;  // Changed from SLACK_BOT_TOKEN
+    this.channel = env.SLACK_CHANNEL;  // Changed from SLACK_CHANNEL_ID
     this.signingSecret = env.SLACK_SIGNING_SECRET;
     this.db = env.DB;
     this.jiraService = jiraService;
