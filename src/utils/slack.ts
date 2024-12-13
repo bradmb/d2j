@@ -20,6 +20,12 @@ export class SlackService {
   }
 
   async sendMessage(message: SlackMessage): Promise<{ ts: string }> {
+    console.log('Sending Slack message:', {
+      channel: message.channel || this.channel,
+      thread_ts: message.thread_ts,
+      text_length: message.text.length
+    });
+
     const response = await fetch('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: {
@@ -34,11 +40,18 @@ export class SlackService {
     });
 
     if (!response.ok) {
+      console.error('Slack API HTTP error:', {
+        status: response.status,
+        statusText: response.statusText
+      });
       throw new Error(`Failed to send Slack message: ${response.statusText}`);
     }
 
     const result = await response.json() as SlackApiResponse;
+    console.log('Slack API response:', result);
+
     if (!result.ok) {
+      console.error('Slack API error:', result.error);
       throw new Error(`Slack API error: ${result.error}`);
     }
 
