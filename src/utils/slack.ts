@@ -116,18 +116,4 @@ export class SlackService {
 
     return expectedSignature === signature;
   }
-
-  async handleDevinReply(threadTs: string, text: string): Promise<void> {
-    const result = await this.db.prepare(
-      'SELECT jira_ticket_key FROM thread_mappings WHERE slack_thread_ts = ?'
-    ).bind(threadTs).first<ThreadMapping>();
-
-    if (!result) {
-      console.error(`No JIRA ticket found for thread ${threadTs}`);
-      return;
-    }
-
-    // Add comment to JIRA ticket using JiraService
-    await this.jiraService.addComment(result.jira_ticket_key, text);
-  }
 }

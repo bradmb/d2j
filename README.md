@@ -1,15 +1,15 @@
 # d2j
 
-A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling automated ticket management and communication between these platforms.
+A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling automated ticket monitoring and one-way communication from JIRA to Slack. Devin handles all JIRA updates directly.
 
 ## Features
 
-- Automated JIRA ticket monitoring and updates
-- Slack integration for ticket notifications and discussions
-- Bi-directional communication between JIRA and Slack
-- Attachment handling and synchronization
+- Automated JIRA ticket monitoring
+- Slack integration for ticket notifications
+- One-way communication from JIRA to Slack
+- Attachment handling
 - Duplicate ticket prevention
-- Thread-based conversations
+- Thread-based conversations in Slack
 
 ## Prerequisites
 
@@ -86,8 +86,8 @@ The worker automatically monitors JIRA for:
 
 The worker creates and manages Slack threads for each JIRA ticket:
 - New tickets create new Slack messages
-- Comments are added to the corresponding thread
-- Devin's responses in Slack are synchronized back to JIRA
+- JIRA comments are added to the corresponding Slack thread
+- Devin receives notifications and instructions to update JIRA directly
 
 ### Configuration
 
@@ -140,19 +140,19 @@ The worker creates and manages Slack threads for each JIRA ticket:
 The application consists of three main components:
 
 1. JIRA Service (`src/jira.ts`):
-   - Handles JIRA API interactions
-   - Manages ticket and comment operations
+   - Handles JIRA API interactions for reading tickets and comments
    - Processes attachments
+   - Monitors ticket assignments and mentions
 
 2. Slack Service (`src/utils/slack.ts`):
    - Manages Slack message threading
-   - Handles bot interactions
-   - Processes message events
+   - Sends notifications about JIRA updates
+   - Maintains thread mappings for organizing conversations
 
 3. Worker (`src/worker.ts`):
    - Coordinates between services
-   - Handles scheduled tasks
-   - Processes webhook events
+   - Handles scheduled JIRA monitoring
+   - Processes incoming events
 
 ## Contributing
 

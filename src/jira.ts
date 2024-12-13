@@ -114,13 +114,4 @@ export class JiraService {
     const jql = `mentions = "${this.accountId}" AND status NOT IN (Resolved, Closed)`;
     return this.searchTickets(jql);
   }
-
-  async addComment(ticketKey: string, comment: string): Promise<void> {
-    try {
-      await this.client.addComment(ticketKey, comment);
-    } catch (error) {
-      console.error(`Error adding comment to ticket ${ticketKey}:`, error);
-      throw new Error(`Failed to add comment to ticket ${ticketKey}`);
-    }
-  }
 }

@@ -171,10 +171,6 @@ export default {
         const slackEvent = event.event;
 
         // Handle message events in threads
-        if (slackEvent.type === 'message' && slackEvent.thread_ts && slackEvent.user === env.DEVIN_USER_ID) {
-          await slackService.handleDevinReply(slackEvent.thread_ts, slackEvent.text);
-          return new Response('OK');
-        }
       }
 
       return new Response('Event type not supported', { status: 400 });
