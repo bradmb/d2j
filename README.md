@@ -124,7 +124,7 @@ The worker creates and manages Slack threads for each JIRA ticket:
 
 2. JIRA Credentials Secret:
    - Create a key-value secret with the following structure:
-     - `URL`: Your JIRA instance URL (e.g., tech.atlassian.net)
+     - `URL`: Your JIRA instance URL (e.g., companyname.atlassian.net)
      - `Username`: Your JIRA email address
      - `Password`: Your JIRA API token
    - Note: Devin will automatically access these credentials using environment variables:
