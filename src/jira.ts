@@ -1,4 +1,4 @@
-import { JiraClient } from 'jira-client';
+import JiraClient from 'jira-client';
 
 export interface JiraConfig {
   host: string;
@@ -97,5 +97,14 @@ export class JiraService {
   async getTicketsWithDevinMentions(): Promise<JiraTicket[]> {
     const jql = 'text ~ "devin"';
     return this.searchTickets(jql);
+  }
+
+  async addComment(ticketKey: string, comment: string): Promise<void> {
+    try {
+      await this.client.addComment(ticketKey, comment);
+    } catch (error) {
+      console.error(`Error adding comment to ticket ${ticketKey}:`, error);
+      throw new Error(`Failed to add comment to ticket ${ticketKey}`);
+    }
   }
 }

@@ -21,6 +21,13 @@ declare module 'jira-client' {
       issues: Array<any>;
       total: number;
     }>;
+    addComment(issueNumber: string, comment: string): Promise<any>;
+    getIssue(issueNumber: string): Promise<any>;
+    deleteIssue(issueNumber: string): Promise<any>;
+    updateIssue(issueNumber: string, issueUpdate: any): Promise<any>;
+    listComponents(project: string): Promise<any>;
+    createComponent(component: any): Promise<any>;
+    getAttachment(attachmentId: string): Promise<any>;
   }
 
   export default JiraApi;
