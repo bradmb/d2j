@@ -51,21 +51,33 @@ export class JiraService {
   private client: JiraClient;
   private accountId: string;
 
+  private encodeJQL(jql: string): string {
+    return encodeURIComponent(jql.trim());
+  }
+
   constructor(config: JiraConfig) {
     // Validate config
     if (!config.host || !config.email || !config.apiToken || !config.accountId) {
       throw new Error('Missing required JIRA configuration');
     }
 
-    this.client = new JiraClient({
+    const baseOptions = {
       host: config.host,
       username: config.email,
       password: config.apiToken,
       protocol: 'https',
       apiVersion: '2',
       strictSSL: true,
-    });
-    this.accountId = config.accountId;  // Use provided JIRA account ID instead of email
+      baseOptions: {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
+    };
+
+    this.client = new JiraClient(baseOptions);
+    this.accountId = config.accountId;
   }
 
   getAccountId(): string {
@@ -83,8 +95,11 @@ export class JiraService {
 
   async searchTickets(jql: string): Promise<JiraTicket[]> {
     try {
+      const encodedJQL = this.encodeJQL(jql);
       console.log('Searching JIRA with JQL:', jql);
-      const result = await this.client.searchJira(jql, {
+      console.log('Encoded JQL:', encodedJQL);
+
+      const result = await this.client.searchJira(encodedJQL, {
         fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
         maxResults: 50
       });
