@@ -24,7 +24,6 @@
     "wrangler": "^3.95.0"
   },
   "dependencies": {
-    "@slack/web-api": "^6.10.0",
-    "jira-client": "^8.2.2"
+    "@slack/web-api": "^6.10.0"
   }
 }
