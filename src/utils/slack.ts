@@ -49,9 +49,30 @@ export class SlackService {
     return { ts: result.ts };
   }
 
-  async sendJiraTicketUpdate(ticketKey: string, summary: string, description: string): Promise<{ ts: string }> {
+  async sendJiraTicketUpdate(
+    ticketKey: string,
+    summary: string,
+    description: string,
+    priority: string,
+    status: string,
+    attachmentCount: number
+  ): Promise<{ ts: string }> {
     const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
-    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*URL:* ${ticketUrl}\n*Summary:* ${summary}\n*Description:*\n${description}\n\nPlease use your Jira_Credentials secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
+    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*
+*URL:* ${ticketUrl}
+*Summary:* ${summary}
+*Description:* ${description}
+*Priority:* ${priority}
+*Status:* ${status}
+*Attachments:* ${attachmentCount} file(s)
+
+Please use your "Jira Credentials" secret to access the ticket. To update the ticket:
+1. Open the ticket URL in your web browser
+2. Log in using the credentials from your "Jira Credentials" secret
+3. Add your comments or updates directly in the web interface`;
+
+    console.log('Sending Slack message with content:', message);
+
     const result = await this.sendMessage({
       text: message,
       channel: this.channel,
@@ -62,15 +83,25 @@ export class SlackService {
     return result;
   }
 
-  async sendJiraCommentUpdate(ticketKey: string, comment: string): Promise<{ ts: string } | null> {
-    const threadTs = await this.getThreadForTicket(ticketKey);
+  async sendJiraCommentUpdate(
+    ticketKey: string,
+    comment: string,
+    thread_ts?: string
+  ): Promise<{ ts: string } | null> {
+    const threadTs = thread_ts || await this.getThreadForTicket(ticketKey);
     if (!threadTs) {
-      console.error(`No thread found for ticket ${ticketKey}`);
+      console.log(`No thread found for ticket ${ticketKey}, skipping comment update`);
       return null;
     }
 
     const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
-    const message = `*New comment on JIRA Ticket ${ticketKey}*\n*URL:* ${ticketUrl}\n${comment}\n\nPlease use your Jira_Credentials secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
+    const message = `<@${this.devinUserId}>
+*New Comment in JIRA Ticket ${ticketKey}*
+*URL:* ${ticketUrl}
+${comment}
+
+Please use your "Jira Credentials" secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
+
     return this.sendMessage({
       text: message,
       thread_ts: threadTs,
