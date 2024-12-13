@@ -78,12 +78,28 @@ export default {
         }
 
         const lastCheckedDate = new Date(threadMapping.last_checked);
+        console.log('Processing comments with lastCheckedDate:', {
+          lastCheckedIso: lastCheckedDate.toISOString(),
+          lastCheckedTimestamp: lastCheckedDate.getTime()
+        });
 
         // Only process comments that tag Devin and are newer than last check
-        const newComments = fullTicket.fields.comment.comments.filter(comment =>
-          new Date(comment.created) > lastCheckedDate &&
-          comment.body.includes(`[~${jiraService.getAccountId()}]`)
-        );
+        const newComments = fullTicket.fields.comment.comments.filter(comment => {
+          const commentDate = new Date(comment.created);
+          const devinTag = `[~accountid:${jiraService.getAccountId()}]`;
+          console.log('Evaluating comment:', {
+            created: comment.created,
+            createdTimestamp: commentDate.getTime(),
+            isNewer: commentDate.getTime() > lastCheckedDate.getTime(),
+            hasDevinTag: comment.body.includes(devinTag),
+            expectedTag: devinTag,
+            body: comment.body
+          });
+          return commentDate.getTime() > lastCheckedDate.getTime() &&
+                 comment.body.includes(devinTag);
+        });
+
+        console.log(`Found ${newComments.length} new comments for ticket ${ticket.key}`);
 
         for (const comment of newComments) {
           console.log(`Found new comment in ticket ${ticket.key}, sending to Slack thread...`);
