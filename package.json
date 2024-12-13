@@ -1,0 +1,24 @@
+{
+  "name": "d2j",
+  "version": "1.0.0",
+  "description": "Devin to JIRA Bridge - A Cloudflare Worker that bridges communication between Devin.ai and JIRA",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["devin", "jira", "cloudflare-worker"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.95.0"
+  },
+  "dependencies": {
+    "@slack/web-api": "^6.10.0",
+    "jira-client": "^8.2.2"
+  }
+}
