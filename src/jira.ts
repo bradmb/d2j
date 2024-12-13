@@ -56,18 +56,22 @@ export class JiraService {
   }
 
   constructor(config: JiraConfig) {
-    // Validate config
-    if (!config.host || !config.email || !config.apiToken || !config.accountId) {
-      throw new Error('Missing required JIRA configuration');
+    if (!config.host || !config.email || !config.apiToken) {
+      throw new Error('Invalid JIRA configuration: missing required fields');
     }
 
+    // Ensure host is properly formatted without protocol
+    const host = config.host.replace(/^https?:\/\//, '');
+
+    // Configure JIRA client with explicit protocol and API version
     const baseOptions = {
-      host: config.host,
+      protocol: 'https',
+      host: host,
       username: config.email,
       password: config.apiToken,
-      protocol: 'https',
       apiVersion: '2',
       strictSSL: true,
+      timeout: 10000,
       baseOptions: {
         headers: {
           'Accept': 'application/json',
