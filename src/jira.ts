@@ -360,7 +360,7 @@ export class JiraService {
     if (!this.accountId) {
       throw new Error('JIRA account ID is required');
     }
-    const jql = `mentions = "${this.accountId}" AND status NOT IN (Resolved, Closed)`;
+    const jql = `comment ~ "[~${this.accountId}]" AND status NOT IN (Resolved, Closed)`;
     return this.searchTickets(jql);
   }
 }
