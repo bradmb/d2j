@@ -17,50 +17,31 @@ export default {
       const slackService = new SlackService(env, jiraService);
 
       // Check for new tickets assigned to Devin
+      console.log('Checking for tickets assigned to Devin...');
       const tickets = await jiraService.getTicketsAssignedToDevin();
 
-      // Process each ticket
       for (const ticket of tickets) {
+        // Fetch full ticket details including attachments
+        console.log(`Processing ticket ${ticket.key}`);
+        const fullTicket = await jiraService.getTicket(ticket.key);
+
         // Check if ticket has already been processed
         const processed = await env.DB.prepare(
           'SELECT 1 FROM ticket_checks WHERE ticket_key = ?'
         ).bind(ticket.key).first();
 
         if (!processed) {
-          console.log(`Processing new ticket ${ticket.key}`);
-
-          // Fetch full ticket details including attachments
-          const fullTicket = await jiraService.getTicket(ticket.key);
-          const attachments = [];
-
-          // Download attachments if present
-          if (fullTicket.fields.attachments?.length > 0) {
-            for (const attachment of fullTicket.fields.attachments) {
-              try {
-                const content = await jiraService.getAttachmentContent(attachment);
-                attachments.push(content);
-                console.log(`Downloaded attachment ${attachment.filename} for ticket ${ticket.key}`);
-              } catch (error) {
-                console.error(`Failed to download attachment ${attachment.filename}:`, error);
-              }
-            }
-          }
+          console.log(`New ticket ${ticket.key} detected, sending to Slack...`);
 
           // Send ticket details to Slack and store thread mapping
-          const ticketMessage = `*New JIRA Ticket Assigned*\n` +
-            `*Key:* ${ticket.key}\n` +
-            `*Summary:* ${fullTicket.fields.summary}\n` +
-            `*Description:* ${fullTicket.fields.description || 'No description provided'}\n` +
-            `*Priority:* ${fullTicket.fields.priority?.name || 'Not set'}\n` +
-            `*Status:* ${fullTicket.fields.status?.name || 'Unknown'}\n` +
-            `*Attachments:* ${attachments.length} file(s)`;
-
           const result = await slackService.sendJiraTicketUpdate(
             ticket.key,
             fullTicket.fields.summary,
-            ticketMessage
+            fullTicket.fields.description || 'No description provided',
+            fullTicket.fields.priority?.name || 'Not set',
+            fullTicket.fields.status?.name || 'Unknown',
+            fullTicket.fields.attachments?.length || 0
           );
-          console.log(`Sent ticket ${ticket.key} to Slack with thread ${result.ts}`);
 
           // Update or insert last checked timestamp
           await env.DB.prepare(
@@ -68,54 +49,56 @@ export default {
              VALUES (?, ?)
              ON CONFLICT(ticket_key) DO UPDATE SET last_checked = excluded.last_checked`
           ).bind(ticket.key, new Date().toISOString()).run();
-        } else {
-          console.log(`Ticket ${ticket.key} has already been processed, skipping...`);
         }
-      }
 
-      // Check for new comments mentioning Devin
-      console.log('Checking for new comments mentioning Devin...');
-      const ticketsWithMentions = await jiraService.getTicketsWithDevinMentions();
-
-      for (const ticket of ticketsWithMentions) {
-        // Get the thread mapping for this ticket
+        // Check for new comments on this assigned ticket
+        console.log(`Checking for new comments on ticket ${ticket.key}...`);
         const threadMapping = await env.DB.prepare(
           'SELECT slack_thread_ts, last_checked FROM thread_mappings WHERE jira_ticket_key = ?'
         ).bind(ticket.key).first<{ slack_thread_ts: string; last_checked: string }>();
 
         if (!threadMapping) {
-          console.log(`No thread mapping found for ticket ${ticket.key}, skipping...`);
+          console.log(`No thread mapping found for ticket ${ticket.key}, creating new mapping...`);
+          const result = await slackService.sendJiraTicketUpdate(
+            ticket.key,
+            fullTicket.fields.summary,
+            fullTicket.fields.description || 'No description provided',
+            fullTicket.fields.priority?.name || 'Not set',
+            fullTicket.fields.status?.name || 'Unknown',
+            fullTicket.fields.attachments?.length || 0
+          );
+
+          if (result && result.ts) {
+            await env.DB.prepare(
+              `INSERT INTO thread_mappings (jira_ticket_key, slack_thread_ts, last_checked)
+               VALUES (?, ?, ?)`
+            ).bind(ticket.key, result.ts, new Date().toISOString()).run();
+          }
           continue;
         }
 
         const lastCheckedDate = new Date(threadMapping.last_checked);
 
-        // Check for new comments after last_checked
-        const newComments = ticket.fields.comment.comments.filter(comment =>
+        // Only process comments that tag Devin and are newer than last check
+        const newComments = fullTicket.fields.comment.comments.filter(comment =>
           new Date(comment.created) > lastCheckedDate &&
           comment.body.includes(`[~${jiraService.getAccountId()}]`)
         );
 
         for (const comment of newComments) {
-          console.log(`Processing new comment in ticket ${ticket.key}`);
-
-          const commentMessage = `*New Comment in JIRA Ticket*\n` +
-            `*From:* ${comment.author.emailAddress}\n` +
-            `*Comment:* ${comment.body}`;
-
-          // Send comment to existing Slack thread
+          console.log(`Found new comment in ticket ${ticket.key}, sending to Slack thread...`);
           const result = await slackService.sendJiraCommentUpdate(
             ticket.key,
-            commentMessage
+            comment.body,
+            threadMapping.slack_thread_ts
           );
 
           if (result) {
-            console.log(`Sent comment from ticket ${ticket.key} to Slack thread`);
+            console.log(`Successfully sent comment from ticket ${ticket.key} to Slack thread`);
           }
         }
 
         if (newComments.length > 0) {
-          // Update last checked timestamp
           await env.DB.prepare(
             `UPDATE thread_mappings
              SET last_checked = ?
@@ -123,8 +106,11 @@ export default {
           ).bind(new Date().toISOString(), ticket.key).run();
         }
       }
+
+      console.log('Scheduled task completed successfully');
     } catch (error) {
       console.error('Error in scheduled task:', error);
+      throw error;
     }
   },
 
