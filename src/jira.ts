@@ -16,6 +16,43 @@ export interface JiraAttachment {
   created: string;
 }
 
+interface JiraApiResponse {
+  expand: string;
+  startAt: number;
+  maxResults: number;
+  total: number;
+  issues: Array<{
+    expand: string;
+    id: string;
+    self: string;
+    key: string;
+    fields: {
+      summary: string;
+      description?: string;
+      status: {
+        self: string;
+        description: string;
+        iconUrl: string;
+        name: string;
+        id: string;
+        statusCategory: {
+          self: string;
+          id: number;
+          key: string;
+          colorName: string;
+          name: string;
+        };
+      };
+      priority?: any;
+      assignee?: any;
+      updated?: string;
+      created?: string;
+      attachments?: any[];
+      comment?: any;
+    };
+  }>;
+}
+
 export interface JiraTicket {
   key: string;
   fields: {
@@ -112,34 +149,38 @@ export class JiraService {
       // Debug request configuration
       const searchEndpoint = `/rest/api/2/search`;
       const requestUrl = `https://${this.host}${searchEndpoint}`;
+      const authToken = Buffer.from(`${this.username}:${this.apiToken}`).toString('base64');
+
       console.log('JIRA API Request URL:', requestUrl);
-      console.log('JIRA API Request Config:', {
-        auth: {
-          username: this.username,
-          password: '***' // Mask token for security
-        },
+      console.log('Making direct fetch request to JIRA API...');
+
+      const response = await fetch(requestUrl, {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${authToken}`
+        },
+        body: JSON.stringify({
+          jql: jql,
+          fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
+          maxResults: 50
+        })
       });
 
-      console.log('Making JIRA API request...');
-      const result = await this.client.searchJira(encodedJql, {
-        fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
-        maxResults: 50
-      });
-      console.log('JIRA API Response:', JSON.stringify(result, null, 2));
-
-      if (!result || !result.issues) {
-        throw new Error('Invalid response format from JIRA API');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`JIRA API responded with status ${response.status}: ${errorText}`);
       }
 
-      return result.issues.map((issue: any): JiraTicket => ({
+      const result = await response.json() as JiraApiResponse;
+      console.log('JIRA API Response:', JSON.stringify(result, null, 2));
+
+      return result.issues.map((issue): JiraTicket => ({
         key: issue.key,
         fields: {
           summary: issue.fields.summary,
-          description: issue.fields.description,
+          description: issue.fields.description || '',
           status: {
             name: issue.fields.status.name
           },
@@ -147,8 +188,8 @@ export class JiraService {
           assignee: {
             emailAddress: issue.fields.assignee?.emailAddress || ''
           },
-          updated: issue.fields.updated,
-          created: issue.fields.created,
+          updated: issue.fields.updated || new Date().toISOString(),
+          created: issue.fields.created || new Date().toISOString(),
           attachments: issue.fields.attachments?.map((attachment: any) => ({
             id: attachment.id,
             filename: attachment.filename,
