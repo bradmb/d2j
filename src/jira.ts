@@ -23,6 +23,9 @@ export interface JiraTicket {
     status: {
       name: string;
     };
+    priority?: {
+      name: string;
+    };
     assignee: {
       emailAddress: string;
     };
@@ -59,7 +62,7 @@ export class JiraService {
 
   async getTicket(ticketKey: string): Promise<JiraTicket> {
     try {
-      return await this.client.findIssue(ticketKey, 'summary,description,status,assignee,updated,created,attachments,comment');
+      return await this.client.findIssue(ticketKey, 'summary,description,status,priority,assignee,updated,created,attachments,comment');
     } catch (error) {
       console.error(`Error fetching ticket ${ticketKey}:`, error);
       throw new Error(`Failed to fetch ticket ${ticketKey}`);
@@ -69,7 +72,7 @@ export class JiraService {
   async searchTickets(jql: string): Promise<JiraTicket[]> {
     try {
       const result = await this.client.searchJira(jql, {
-        fields: ['summary', 'description', 'status', 'assignee', 'updated', 'created', 'attachments', 'comment'],
+        fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
         maxResults: 50
       });
       return result.issues;
