@@ -94,33 +94,74 @@ export class JiraService {
   }
 
   async searchTickets(jql: string): Promise<JiraTicket[]> {
-    try {
-      const encodedJQL = this.encodeJQL(jql);
-      console.log('Searching JIRA with JQL:', jql);
-      console.log('Encoded JQL:', encodedJQL);
+    console.log('Starting JIRA ticket search...');
+    console.log('JQL Query:', jql);
+    const encodedJql = this.encodeJQL(jql);
+    console.log('Encoded JQL:', encodedJql);
 
-      const result = await this.client.searchJira(encodedJQL, {
+    try {
+      console.log('Making JIRA API request...');
+      const result = await this.client.searchJira(encodedJql, {
         fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
         maxResults: 50
       });
-      return result.issues;
-    } catch (error: unknown) {
-      const errorDetails: Record<string, unknown> = {
-        raw: error
+      console.log('JIRA API Response:', JSON.stringify(result, null, 2));
+
+      if (!result || !result.issues) {
+        throw new Error('Invalid response format from JIRA API');
+      }
+
+      return result.issues.map((issue: any): JiraTicket => ({
+        key: issue.key,
+        fields: {
+          summary: issue.fields.summary,
+          description: issue.fields.description,
+          status: {
+            name: issue.fields.status.name
+          },
+          priority: issue.fields.priority ? { name: issue.fields.priority.name } : undefined,
+          assignee: {
+            emailAddress: issue.fields.assignee?.emailAddress || ''
+          },
+          updated: issue.fields.updated,
+          created: issue.fields.created,
+          attachments: issue.fields.attachments?.map((attachment: any) => ({
+            id: attachment.id,
+            filename: attachment.filename,
+            content: attachment.content,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            created: attachment.created
+          })) || [],
+          comment: {
+            comments: issue.fields.comment?.comments.map((comment: any) => ({
+              id: comment.id,
+              body: comment.body,
+              author: {
+                emailAddress: comment.author.emailAddress
+              },
+              created: comment.created,
+              updated: comment.updated
+            })) || []
+          }
+        }
+      }));
+    } catch (error: any) {
+      console.error('JIRA API Error Details:', {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+
+      const errorDetails = {
+        raw: error,
+        message: error.message || String(error)
       };
 
-      if (error instanceof Error) {
-        errorDetails.message = error.message;
-      }
-
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        const apiError = error as { response?: { data?: unknown; status?: number } };
-        errorDetails.response = apiError.response?.data;
-        errorDetails.status = apiError.response?.status;
-      }
-
-      console.error('Error searching tickets:', errorDetails);
-      throw new Error(`Failed to search tickets: ${errorDetails.message || 'Unknown error'}`);
+      throw new Error(`Failed to search tickets: ${JSON.stringify(errorDetails)}`);
     }
   }
 
