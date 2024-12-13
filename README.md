@@ -92,17 +92,35 @@ The worker creates and manages Slack threads for each JIRA ticket:
 ### Configuration
 
 1. JIRA Setup:
-   - Generate an API token from your [Atlassian Account Settings](https://id.atlassian.com/manage/api-tokens)
-   - Note your account ID from your profile
+   - Go to your [Atlassian Account Settings](https://id.atlassian.com/manage/api-tokens)
+   - Click on "Security" in the left sidebar
+   - Under "API token", click "Create and manage API tokens"
+   - Click "Create API token", give it a name (e.g., "D2J Integration")
+   - Copy the generated token - this is your `JIRA_API_TOKEN`
+   - To find your `JIRA_ACCOUNT_ID`:
+     1. Log in to JIRA
+     2. Click on your profile picture in the top-right
+     3. Click "Profile"
+     4. Your account ID is in the URL: `https://your-domain.atlassian.net/jira/people/YOUR-ACCOUNT-ID`
 
 2. Slack Setup:
-   - Create a Slack app in your workspace
-   - Add bot user permissions:
-     - `chat:write`
-     - `channels:history`
-     - `groups:history`
-   - Install the app to your workspace
-   - Copy the bot token and signing secret
+   - Go to [Slack API Apps page](https://api.slack.com/apps)
+   - Click "Create New App" → "From scratch"
+   - Choose a name and workspace
+   - Under "Basic Information":
+     - Find "Signing Secret" - this is your `SLACK_SIGNING_SECRET`
+   - Go to "OAuth & Permissions":
+     - Under "Bot Token Scopes", add required permissions:
+       - `chat:write`
+       - `channels:history`
+       - `groups:history`
+     - Install the app to your workspace
+     - Copy "Bot User OAuth Token" - this is your `SLACK_TOKEN`
+   - To find the `DEVIN_USER_ID`:
+     1. Right-click on Devin's name in Slack
+     2. Click "View profile"
+     3. Click the "•••" (more actions) button
+     4. Click "Copy member ID"
 
 3. Cloudflare Setup:
    - Configure the worker with appropriate memory and CPU limits
