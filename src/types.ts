@@ -7,9 +7,8 @@ export interface Env {
   JIRA_API_TOKEN: string;
   JIRA_EMAIL: string;
   JIRA_URL: string;  // Format: your-domain.atlassian.net (e.g., tech.atlassian.net)
-  SLACK_BOT_TOKEN: string;
-  DEVIN_API_KEY: string;
-  SLACK_CHANNEL_ID: string;
+  SLACK_TOKEN: string;  // Changed from SLACK_BOT_TOKEN
+  SLACK_CHANNEL: string;  // Changed from SLACK_CHANNEL_ID
   SLACK_SIGNING_SECRET: string;
   JIRA_ACCOUNT_ID: string;  // Format: 123456:01234567-89ab-cdef-0123-456789abcdef (JIRA user account ID)
   DEVIN_USER_ID: string;  // Format: U0123ABCD456 (Slack user ID for Devin bot)

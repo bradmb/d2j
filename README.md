@@ -17,7 +17,7 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 - [JIRA](https://www.atlassian.com/software/jira) account with API access
 - [Slack](https://slack.com/) workspace with bot integration
 - [Node.js](https://nodejs.org/) (v18 or later)
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (v3 or later)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (v3 or later) - Install with `npx wrangler`
 
 ## Setup
 
@@ -48,7 +48,7 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 4. Set up the D1 database:
    ```bash
    # Create a new D1 database
-   wrangler d1 create d2j
+   npx wrangler d1 create d2j
 
    # Update wrangler.toml with the database ID from the output above
    # Replace the "placeholder" value in the [[d1_databases]] section
@@ -57,20 +57,20 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 5. Initialize the database schema:
    ```bash
    # For local development
-   wrangler d1 execute d2j --local --file=./schema.sql
+   npx wrangler d1 execute d2j --local --file=./schema.sql
 
    # For production deployment
-   wrangler d1 execute d2j --file=./schema.sql
+   npx wrangler d1 execute d2j --file=./schema.sql
    ```
 
    Note: If you encounter a "no such table" error when running the worker:
    - Verify that the schema was deployed successfully using:
      ```bash
      # List tables in local development
-     wrangler d1 execute d2j --local --command "SELECT name FROM sqlite_master WHERE type='table';"
+     npx wrangler d1 execute d2j --local --command "SELECT name FROM sqlite_master WHERE type='table';"
 
      # List tables in production
-     wrangler d1 execute d2j --command "SELECT name FROM sqlite_master WHERE type='table';"
+     npx wrangler d1 execute d2j --command "SELECT name FROM sqlite_master WHERE type='table';"
      ```
    - If tables are missing, re-run the schema deployment command for your environment
    - For local development, you may need to restart the worker after schema changes
@@ -122,7 +122,17 @@ The worker creates and manages Slack threads for each JIRA ticket:
      3. Click "Profile"
      4. Your account ID is in the URL: `https://your-domain.atlassian.net/jira/people/YOUR-ACCOUNT-ID`
 
-2. Slack Setup:
+2. JIRA Credentials Secret:
+   - Create a key-value secret with the following structure:
+     - `URL`: Your JIRA instance URL (e.g., tech.atlassian.net)
+     - `Username`: Your JIRA email address
+     - `Password`: Your JIRA API token
+   - Note: Devin will automatically access these credentials using environment variables:
+     - `Jira_Credentials_URL`
+     - `Jira_Credentials_Username`
+     - `Jira_Credentials_Password`
+
+3. Slack Setup:
    - Go to [Slack API Apps page](https://api.slack.com/apps)
    - Click "Create New App" → "From scratch"
    - Choose a name and workspace
@@ -141,10 +151,10 @@ The worker creates and manages Slack threads for each JIRA ticket:
      3. Click the "•••" (more actions) button
      4. Click "Copy member ID"
 
-3. Cloudflare Setup:
+4. Cloudflare Setup:
    - Configure the worker with appropriate memory and CPU limits
    - Set up scheduled triggers (default: every 15 minutes)
-   - Configure environment variables in the Cloudflare dashboard
+   - Configure environment variables in the Cloudflare dashboard using `npx wrangler secret put`
 
 ## Development Guidelines
 

@@ -11,8 +11,8 @@ export class SlackService {
   private devinUserId: string;  // Add field for Devin's Slack user ID
 
   constructor(env: Env, jiraService: JiraService) {
-    this.token = env.SLACK_BOT_TOKEN;
-    this.channel = env.SLACK_CHANNEL_ID;
+    this.token = env.SLACK_TOKEN;  // Changed from SLACK_BOT_TOKEN
+    this.channel = env.SLACK_CHANNEL;  // Changed from SLACK_CHANNEL_ID
     this.signingSecret = env.SLACK_SIGNING_SECRET;
     this.db = env.DB;
     this.jiraService = jiraService;
@@ -50,7 +50,8 @@ export class SlackService {
   }
 
   async sendJiraTicketUpdate(ticketKey: string, summary: string, description: string): Promise<{ ts: string }> {
-    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}\nPlease ensure to update JIRA when you have questions or complete the work.`;
+    const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
+    const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*\n*URL:* ${ticketUrl}\n*Summary:* ${summary}\n*Description:*\n${description}\n\nPlease use your Jira_Credentials secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
     const result = await this.sendMessage({
       text: message,
       channel: this.channel,
@@ -68,7 +69,8 @@ export class SlackService {
       return null;
     }
 
-    const message = `*New comment on JIRA Ticket ${ticketKey}*\n${comment}\nPlease ensure to update JIRA when you have questions or complete the work.`;
+    const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
+    const message = `*New comment on JIRA Ticket ${ticketKey}*\n*URL:* ${ticketUrl}\n${comment}\n\nPlease use your Jira_Credentials secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
     return this.sendMessage({
       text: message,
       thread_ts: threadTs,

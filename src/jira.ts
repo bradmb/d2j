@@ -1,5 +1,3 @@
-import JiraClient from 'jira-client';
-
 export interface JiraConfig {
   host: string;
   email: string;
@@ -53,6 +51,74 @@ interface JiraApiResponse {
   }>;
 }
 
+interface JiraTicketResponse {
+  expand: string;
+  id: string;
+  self: string;
+  key: string;
+  fields: {
+    summary: string;
+    description?: string;
+    status: {
+      self: string;
+      description: string;
+      iconUrl: string;
+      name: string;
+      id: string;
+      statusCategory: {
+        self: string;
+        id: number;
+        key: string;
+        colorName: string;
+        name: string;
+      };
+    };
+    priority?: {
+      self: string;
+      iconUrl: string;
+      name: string;
+      id: string;
+    };
+    assignee?: {
+      self: string;
+      accountId: string;
+      emailAddress: string;
+      avatarUrls: {
+        [key: string]: string;
+      };
+      displayName: string;
+      active: boolean;
+      timeZone: string;
+      accountType: string;
+    };
+    updated?: string;
+    created?: string;
+    attachments?: Array<{
+      id: string;
+      filename: string;
+      content: string;
+      mimeType: string;
+      size: number;
+      created: string;
+    }>;
+    comment?: {
+      comments: Array<{
+        id: string;
+        body: string;
+        author: {
+          emailAddress: string;
+        };
+        created: string;
+        updated: string;
+      }>;
+      self: string;
+      maxResults: number;
+      total: number;
+      startAt: number;
+    };
+  };
+}
+
 export interface JiraTicket {
   key: string;
   fields: {
@@ -85,7 +151,6 @@ export interface JiraTicket {
 }
 
 export class JiraService {
-  private client: JiraClient;
   private host: string;
   private username: string;
   private apiToken: string;
@@ -104,25 +169,6 @@ export class JiraService {
     this.host = config.host.replace(/^https?:\/\//, '');
     this.username = config.email;
     this.apiToken = config.apiToken;
-
-    // Configure JIRA client with explicit protocol and API version
-    const baseOptions = {
-      protocol: 'https',
-      host: this.host,
-      username: this.username,
-      password: this.apiToken,
-      apiVersion: '2',
-      strictSSL: true,
-      timeout: 10000,
-      baseOptions: {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      }
-    };
-
-    this.client = new JiraClient(baseOptions);
     this.accountId = config.accountId;
   }
 
@@ -131,11 +177,74 @@ export class JiraService {
   }
 
   async getTicket(ticketKey: string): Promise<JiraTicket> {
+    console.log('Fetching JIRA ticket:', ticketKey);
     try {
-      return await this.client.findIssue(ticketKey, 'summary,description,status,priority,assignee,updated,created,attachments,comment');
-    } catch (error) {
-      console.error(`Error fetching ticket ${ticketKey}:`, error);
-      throw new Error(`Failed to fetch ticket ${ticketKey}`);
+      const requestUrl = `https://${this.host}/rest/api/2/issue/${ticketKey}`;
+      const authToken = Buffer.from(`${this.username}:${this.apiToken}`).toString('base64');
+
+      console.log('Making direct fetch request to JIRA API for ticket:', ticketKey);
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`JIRA API responded with status ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json() as JiraTicketResponse;
+      console.log('JIRA API Response for ticket:', ticketKey, JSON.stringify(result, null, 2));
+
+      return {
+        key: result.key,
+        fields: {
+          summary: result.fields.summary,
+          description: result.fields.description || '',
+          status: {
+            name: result.fields.status.name
+          },
+          priority: result.fields.priority ? { name: result.fields.priority.name } : undefined,
+          assignee: {
+            emailAddress: result.fields.assignee?.emailAddress || ''
+          },
+          updated: result.fields.updated || new Date().toISOString(),
+          created: result.fields.created || new Date().toISOString(),
+          attachments: result.fields.attachments?.map((attachment) => ({
+            id: attachment.id,
+            filename: attachment.filename,
+            content: attachment.content,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            created: attachment.created
+          })) || [],
+          comment: {
+            comments: result.fields.comment?.comments.map((comment) => ({
+              id: comment.id,
+              body: comment.body,
+              author: {
+                emailAddress: comment.author.emailAddress
+              },
+              created: comment.created,
+              updated: comment.updated
+            })) || []
+          }
+        }
+      };
+    } catch (error: any) {
+      console.error(`Error fetching ticket ${ticketKey}:`, {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+      throw new Error(`Failed to fetch ticket ${ticketKey}: ${error.message || String(error)}`);
     }
   }
 
@@ -146,7 +255,6 @@ export class JiraService {
     console.log('Encoded JQL:', encodedJql);
 
     try {
-      // Debug request configuration
       const searchEndpoint = `/rest/api/2/search`;
       const requestUrl = `https://${this.host}${searchEndpoint}`;
       const authToken = Buffer.from(`${this.username}:${this.apiToken}`).toString('base64');
@@ -252,7 +360,7 @@ export class JiraService {
     if (!this.accountId) {
       throw new Error('JIRA account ID is required');
     }
-    const jql = `mentions = "${this.accountId}" AND status NOT IN (Resolved, Closed)`;
+    const jql = `comment ~ "${this.accountId}" AND status NOT IN (Resolved, Closed)`;
     return this.searchTickets(jql);
   }
 }
