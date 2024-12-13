@@ -48,16 +48,22 @@ export interface JiraTicket {
 
 export class JiraService {
   private client: JiraClient;
+  private accountId: string;
 
   constructor(config: JiraConfig) {
     this.client = new JiraClient({
-      host: 'tech.atlassian.net',
+      host: config.host,
       username: config.email,
       password: config.apiToken,
       protocol: 'https',
       apiVersion: '2',
       strictSSL: true,
     });
+    this.accountId = config.email;  // Using email as account identifier until we get the actual account ID
+  }
+
+  getAccountId(): string {
+    return this.accountId;
   }
 
   async getTicket(ticketKey: string): Promise<JiraTicket> {
@@ -93,12 +99,18 @@ export class JiraService {
   }
 
   async getTicketsAssignedToDevin(): Promise<JiraTicket[]> {
-    const jql = 'assignee = devin';
+    if (!this.accountId) {
+      throw new Error('JIRA account ID is required');
+    }
+    const jql = `assignee = "${this.accountId}"`;
     return this.searchTickets(jql);
   }
 
   async getTicketsWithDevinMentions(): Promise<JiraTicket[]> {
-    const jql = 'text ~ "devin"';
+    if (!this.accountId) {
+      throw new Error('JIRA account ID is required');
+    }
+    const jql = `text ~ "[~${this.accountId}]"`;
     return this.searchTickets(jql);
   }
 

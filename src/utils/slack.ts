@@ -48,7 +48,7 @@ export class SlackService {
   }
 
   async sendJiraTicketUpdate(ticketKey: string, summary: string, description: string): Promise<{ ts: string }> {
-    const message = `*JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}`;
+    const message = `<@devin> *JIRA Ticket ${ticketKey}*\n*Summary:* ${summary}\n*Description:*\n${description}`;
     const result = await this.sendMessage({
       text: message,
       channel: this.channel,

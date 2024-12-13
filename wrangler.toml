@@ -13,3 +13,7 @@ watch_dir = "src"
 binding = "DB"
 database_name = "d2j"
 database_id = "placeholder"  # Will be updated after D1 database creation
+
+[vars]
+JIRA_URL = "tech.atlassian.net"
+DEVIN_USER_ID = "YOUR_DEVIN_USER_ID"  # Will be updated with actual Devin bot user ID

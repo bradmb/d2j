@@ -8,7 +8,7 @@ export default {
 
     try {
       const jiraService = new JiraService({
-        host: 'tech.atlassian.net',
+        host: env.JIRA_URL,
         email: env.JIRA_EMAIL,
         apiToken: env.JIRA_API_TOKEN,
       });
@@ -92,7 +92,7 @@ export default {
         // Check for new comments after last_checked
         const newComments = ticket.fields.comment.comments.filter(comment =>
           new Date(comment.created) > lastCheckedDate &&
-          comment.body.toLowerCase().includes('@devin')
+          comment.body.includes(`[~${jiraService.getAccountId()}]`)
         );
 
         for (const comment of newComments) {
@@ -142,7 +142,7 @@ export default {
       }
 
       const jiraService = new JiraService({
-        host: 'tech.atlassian.net',
+        host: env.JIRA_URL,
         email: env.JIRA_EMAIL,
         apiToken: env.JIRA_API_TOKEN,
       });
@@ -169,7 +169,7 @@ export default {
         const slackEvent = event.event;
 
         // Handle message events in threads
-        if (slackEvent.type === 'message' && slackEvent.thread_ts) {
+        if (slackEvent.type === 'message' && slackEvent.thread_ts && slackEvent.user === env.DEVIN_USER_ID) {
           await slackService.handleDevinReply(slackEvent.thread_ts, slackEvent.text);
           return new Response('OK');
         }

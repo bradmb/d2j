@@ -9,6 +9,8 @@ export interface Env {
   DEVIN_API_KEY: string;
   SLACK_CHANNEL_ID: string;
   SLACK_SIGNING_SECRET: string;
+  JIRA_ACCOUNT_ID: string;
+  DEVIN_USER_ID: string;  // Slack user ID for Devin bot
 }
 
 export interface SlackMessage {
