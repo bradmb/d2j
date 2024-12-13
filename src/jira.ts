@@ -52,6 +52,11 @@ export class JiraService {
   private accountId: string;
 
   constructor(config: JiraConfig) {
+    // Validate config
+    if (!config.host || !config.email || !config.apiToken || !config.accountId) {
+      throw new Error('Missing required JIRA configuration');
+    }
+
     this.client = new JiraClient({
       host: config.host,
       username: config.email,
@@ -78,14 +83,29 @@ export class JiraService {
 
   async searchTickets(jql: string): Promise<JiraTicket[]> {
     try {
+      console.log('Searching JIRA with JQL:', jql);
       const result = await this.client.searchJira(jql, {
         fields: ['summary', 'description', 'status', 'priority', 'assignee', 'updated', 'created', 'attachments', 'comment'],
         maxResults: 50
       });
       return result.issues;
-    } catch (error) {
-      console.error('Error searching tickets:', error);
-      throw new Error('Failed to search tickets');
+    } catch (error: unknown) {
+      const errorDetails: Record<string, unknown> = {
+        raw: error
+      };
+
+      if (error instanceof Error) {
+        errorDetails.message = error.message;
+      }
+
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const apiError = error as { response?: { data?: unknown; status?: number } };
+        errorDetails.response = apiError.response?.data;
+        errorDetails.status = apiError.response?.status;
+      }
+
+      console.error('Error searching tickets:', errorDetails);
+      throw new Error(`Failed to search tickets: ${errorDetails.message || 'Unknown error'}`);
     }
   }
 
