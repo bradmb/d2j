@@ -23,7 +23,7 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com//d2j.git
+   git clone https://github.com/bradmb/d2j.git
    cd d2j
    ```
 
