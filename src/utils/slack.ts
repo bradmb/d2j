@@ -8,15 +8,19 @@ export class SlackService {
   private signingSecret: string;
   private db: D1Database;
   private jiraService: JiraService;
-  private devinUserId: string;  // Add field for Devin's Slack user ID
+  private devinUserId: string;
 
   constructor(env: Env, jiraService: JiraService) {
-    this.token = env.SLACK_TOKEN;  // Changed from SLACK_BOT_TOKEN
-    this.channel = env.SLACK_CHANNEL;  // Changed from SLACK_CHANNEL_ID
+    this.token = env.SLACK_TOKEN;
+    this.channel = env.SLACK_CHANNEL;
     this.signingSecret = env.SLACK_SIGNING_SECRET;
     this.db = env.DB;
     this.jiraService = jiraService;
-    this.devinUserId = env.DEVIN_USER_ID;  // Store Devin's user ID for mentions
+    this.devinUserId = env.DEVIN_USER_ID;
+  }
+
+  private replaceJiraTagWithDevin(text: string): string {
+    return text.replace(/\[~accountid:[^\]]+\]/g, '@Devin');
   }
 
   async sendMessage(message: SlackMessage): Promise<{ ts: string }> {
@@ -91,7 +95,6 @@ Please use your "Jira Credentials" secret to access the ticket. To update the ti
       channel: this.channel,
     });
 
-    // Store the thread mapping
     await this.storeThreadMapping(ticketKey, result.ts);
     return result;
   }
@@ -108,10 +111,11 @@ Please use your "Jira Credentials" secret to access the ticket. To update the ti
     }
 
     const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
+    const formattedComment = this.replaceJiraTagWithDevin(comment);
     const message = `<@${this.devinUserId}>
 *New Comment in JIRA Ticket ${ticketKey}*
 *URL:* ${ticketUrl}
-${comment}
+${formattedComment}
 
 Please use your "Jira Credentials" secret to access the ticket. Remember to update JIRA when you have questions or complete the work.`;
 
