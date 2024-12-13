@@ -189,7 +189,3 @@ The application consists of three main components:
 2. Make your changes
 3. Run tests and linting
 4. Submit a pull request
-
-## License
-
-Proprietary - All rights reserved
