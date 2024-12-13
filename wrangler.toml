@@ -1,0 +1,19 @@
+name = "d2j"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["*/15 * * * *"]  # Run every 15 minutes
+
+[build]
+command = "tsc"
+watch_dir = "src"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "d2j"
+database_id = "placeholder"  # Will be updated after D1 database creation
+
+[vars]
+DEVIN_USER_ID = "YOUR_DEVIN_USER_ID"  # Will be updated with actual Devin bot user ID
