@@ -1,4 +1,4 @@
-import { Env } from './types';
+import { Env, SlackEventPayload } from './types';
 import { JiraService, JiraTicket } from './jira';
 import { SlackService } from './utils/slack';
 
@@ -128,6 +128,57 @@ export default {
   },
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    return new Response('D2J Worker is running');
+    if (request.method !== 'POST') {
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    try {
+      const body = await request.text();
+      const signature = request.headers.get('x-slack-signature');
+      const timestamp = request.headers.get('x-slack-request-timestamp');
+
+      if (!signature || !timestamp) {
+        return new Response('Missing Slack signature headers', { status: 400 });
+      }
+
+      const jiraService = new JiraService({
+        host: 'tech.atlassian.net',
+        email: env.JIRA_EMAIL,
+        apiToken: env.JIRA_API_TOKEN,
+      });
+
+      const slackService = new SlackService(env, jiraService);
+
+      // Verify Slack request signature
+      const isValid = await slackService.verifyRequest(signature, timestamp, body);
+      if (!isValid) {
+        return new Response('Invalid signature', { status: 401 });
+      }
+
+      const event = JSON.parse(body) as { type: string; event?: SlackEventPayload };
+
+      // Handle Slack challenge
+      if (event.type === 'url_verification') {
+        return new Response(JSON.stringify({ challenge: (event as any).challenge }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Handle Slack events
+      if (event.type === 'event_callback' && event.event) {
+        const slackEvent = event.event;
+
+        // Handle message events in threads
+        if (slackEvent.type === 'message' && slackEvent.thread_ts) {
+          await slackService.handleDevinReply(slackEvent.thread_ts, slackEvent.text);
+          return new Response('OK');
+        }
+      }
+
+      return new Response('Event type not supported', { status: 400 });
+    } catch (error) {
+      console.error('Error processing Slack event:', error);
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 };

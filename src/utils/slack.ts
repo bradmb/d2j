@@ -1,32 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
-import { Env } from '../types';
+import { Env, SlackEventPayload, SlackMessage, ThreadMapping, SlackApiResponse } from '../types';
 import { JiraService } from '../jira';
-
-interface SlackMessage {
-  text: string;
-  thread_ts?: string;
-  channel: string;
-}
-
-interface SlackApiResponse {
-  ok: boolean;
-  error?: string;
-  ts?: string;
-}
-
-interface SlackEventPayload {
-  type: string;
-  channel: string;
-  thread_ts?: string;
-  text: string;
-  user: string;
-}
-
-interface ThreadMapping {
-  jira_ticket_key: string;
-  slack_thread_ts: string;
-  last_checked: string;
-}
 
 export class SlackService {
   private token: string;

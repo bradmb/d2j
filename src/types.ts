@@ -17,6 +17,12 @@ export interface SlackMessage {
   channel: string;
 }
 
+export interface SlackApiResponse {
+  ok: boolean;
+  error?: string;
+  ts?: string;
+}
+
 export interface SlackEventPayload {
   type: string;
   channel: string;
