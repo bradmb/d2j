@@ -7,7 +7,6 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
 - Automated JIRA ticket monitoring
 - Slack integration for ticket notifications
 - One-way communication from JIRA to Slack
-- Attachment handling
 - Duplicate ticket prevention
 - Thread-based conversations in Slack
 
