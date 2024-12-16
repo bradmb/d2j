@@ -74,7 +74,7 @@ export class SlackService {
     status: string,
     attachmentCount: number
   ): Promise<{ ts: string }> {
-    const ticketUrl = `https://tech.atlassian.net/browse/${ticketKey}`;
+    const ticketUrl = `https://take3tech.atlassian.net/browse/${ticketKey}`;
     const message = `<@${this.devinUserId}> *JIRA Ticket ${ticketKey}*
 *URL:* ${ticketUrl}
 *Summary:* ${summary}
@@ -83,12 +83,17 @@ export class SlackService {
 *Status:* ${status}
 *Attachments:* ${attachmentCount} file(s)
 
-Please use your "Jira Credentials" secret to access the ticket. To update the ticket:
-1. Open the ticket URL in your web browser
-2. Log in using the credentials from your "Jira Credentials" secret
-3. Add your comments or updates directly in the web interface`;
+Please keep this ticket updated throughout your work:
+1. Update the ticket when you begin working on it
+2. Provide regular progress updates as you work
+3. Update the ticket when you have questions that need answers
+4. Update the ticket when the work is completed
 
-    console.log('Sending Slack message with content:', message);
+You can access and update the ticket in two ways:
+- Web Browser: Use your "Jira Credentials" secret to access the ticket URL
+- REST API: Use your "Jira API Token" secret for programmatic access
+
+It's crucial to maintain up-to-date ticket status to keep all stakeholders informed of progress.`;
 
     const result = await this.sendMessage({
       text: message,
