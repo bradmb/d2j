@@ -60,7 +60,7 @@ A Cloudflare Worker that integrates Devin.ai with JIRA and Slack, enabling autom
    npx wrangler d1 execute d2j --local --file=./schema.sql
 
    # For production deployment
-   npx wrangler d1 execute d2j --file=./schema.sql
+   npx wrangler d1 execute d2j --remote --file=./schema.sql
    ```
 
    Note: If you encounter a "no such table" error when running the worker:
