@@ -83,6 +83,11 @@ export class SlackService {
 *Status:* ${status}
 *Attachments:* ${attachmentCount} file(s)
 
+Before starting work:
+1. Read the ticket description thoroughly
+2. Review all attached screenshots and documentation
+3. Make sure you understand the requirements
+
 Please keep this ticket updated throughout your work:
 1. Update the ticket when you begin working on it
 2. Provide regular progress updates as you work
