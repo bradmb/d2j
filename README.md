@@ -126,13 +126,12 @@ The worker creates and manages Slack threads for each JIRA ticket:
    - Create a key-value secret with the following structure:
      - `URL`: Your JIRA instance URL (e.g., companyname.atlassian.net)
      - `Username`: Your JIRA email address
-     - `Password`: Your JIRA API token
-   - Note: Devin will automatically access these credentials using environment variables:
-     - `Jira_Credentials_URL`
-     - `Jira_Credentials_Username`
-     - `Jira_Credentials_Password`
+     - `Password`: Your JIRA password
+    
+3. JIRA API Token Secret:
+   - Create a plain-text secret with the JIRA API token so Devin can use the REST API to access/update the ticket
 
-3. Slack Setup:
+4. Slack Setup:
    - Go to [Slack API Apps page](https://api.slack.com/apps)
    - Click "Create New App" → "From scratch"
    - Choose a name and workspace
@@ -151,7 +150,7 @@ The worker creates and manages Slack threads for each JIRA ticket:
      3. Click the "•••" (more actions) button
      4. Click "Copy member ID"
 
-4. Cloudflare Setup:
+5. Cloudflare Setup:
    - Configure the worker with appropriate memory and CPU limits
    - Set up scheduled triggers (default: every 15 minutes)
    - Configure environment variables in the Cloudflare dashboard using `npx wrangler secret put`
